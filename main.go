@@ -3,10 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 )
+
+type Article struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -46,19 +50,20 @@ func bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+	var article Article
+	if err := json.NewDecoder(r.Body).Decode(&article); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var data map[string]interface{}
-	if err := json.Unmarshal(body, &data); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	response := map[string]interface{}{
+		"message": fmt.Sprintf("Received article with title: %s", article.Title),
+		"article": map[string]string{
+			"title":   article.Title,
+			"content": article.Content,
+		},
 	}
 
-	response := map[string]string{"message": fmt.Sprintf("Received data with title: %s", data["title"])}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
